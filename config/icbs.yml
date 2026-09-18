@@ -1,0 +1,44 @@
+# =============================================================================
+# THE MOST IMPORTANT FILE IN THE PROJECT
+# =============================================================================
+# Your scoping form promises that a fourth ICB can be added in under one
+# working day, through configuration only. THIS is that configuration.
+#
+# To add an ICB: copy a block below, change the values, set enabled: true.
+# You should never need to touch Python or SQL to add an area. If you ever do,
+# something has been hardcoded that should not have been.
+#
+# HOW TO READ YAML
+#   - Indentation means "belongs to". It MUST be spaces, never tabs.
+#   - `icbs:` is a name with a list underneath it.
+#   - Each `- ` starts a new item in that list.
+#   - `key: value` sets one field on the current item.
+#   - Anything after a # is a comment and is ignored.
+# =============================================================================
+
+icbs:
+  # --- ICB 1 --------------------------------------------------------------
+  - code: QHL                                  # ODS code. Uppercase is forced
+                                               # by a validator in config.py.
+    name: NHS Birmingham and Solihull ICB
+    enabled: true                              # MONTH 4: the first full build.
+                                               # Highest diabetes burden and
+                                               # most diverse population, so it
+                                               # is the strongest single case.
+    peer_codes: [QOP, QKK]                     # Who this ICB is benchmarked
+                                               # against. Square brackets are
+                                               # a short way of writing a list.
+
+  # --- ICB 2 --------------------------------------------------------------
+  - code: QOP
+    name: NHS Greater Manchester ICB
+    enabled: false                             # MONTH 5: change this one word
+                                               # to true. That is the entire
+                                               # deployment. No code changes.
+    peer_codes: [QHL, QKK]
+
+  # --- ICB 3 --------------------------------------------------------------
+  - code: QKK
+    name: NHS South East London ICB
+    enabled: false                             # MONTH 5: same again.
+    peer_codes: [QHL, QOP]

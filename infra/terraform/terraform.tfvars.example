@@ -1,0 +1,6 @@
+# Copy this file to terraform.tfvars and fill in your own values.
+# terraform.tfvars is gitignored because it identifies your subscription.
+
+subscription_id        = "00000000-0000-0000-0000-000000000000"
+storage_account_suffix = "aoa"   # your initials; keeps the name globally unique
+environment            = "dev"

@@ -1,0 +1,117 @@
+# =============================================================================
+# CONTINUOUS INTEGRATION (CI)
+# =============================================================================
+# WHAT THIS IS: a robot that checks your code every single time you push.
+# It runs on GitHub's computers, not yours, in a fresh empty machine. That is
+# the point - it proves the project works somewhere other than your laptop.
+#
+# WHY IT MATTERS FOR YOUR EPA: once branch protection is on (SETUP.md step 12),
+# a failure here physically blocks the merge. Screenshotting a red X blocking a
+# merge, then the green tick after you fix it, is your single best piece of
+# K6 and K8 evidence.
+#
+# THIS FILE IS YAML: indentation is meaning, and tabs are forbidden. If GitHub
+# says the workflow is invalid, check your spaces first.
+# =============================================================================
+
+name: CI # the name shown in the Actions tab on GitHub
+
+# ---------------------------------------------------------------------------
+# `on` = when should this robot wake up?
+# ---------------------------------------------------------------------------
+on:
+  pull_request: # every time you open or update a PR
+  push:
+    branches: [main] # and every time something lands on main
+
+# ---------------------------------------------------------------------------
+# `jobs` = the separate pieces of work. Jobs run in PARALLEL by default, so
+# your Python checks and Terraform checks happen at the same time.
+# ---------------------------------------------------------------------------
+jobs:
+  python:
+    name: Python quality gate
+    runs-on: ubuntu-latest # a fresh Linux machine, created and destroyed per run
+
+    # `steps` run one after another, top to bottom. If one fails, the rest are
+    # skipped and the job is marked failed.
+    steps:
+      # `uses` runs a pre-built action someone else published.
+      # This one copies your repository onto the machine. Without it, the
+      # machine is empty and has no idea what your code is.
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with: # `with` passes settings to the action
+          python-version: "3.11"
+          cache: pip # remember downloaded packages so later runs are faster
+
+      # `run` executes shell commands, exactly as you would type them locally.
+      # The `|` means "several lines of commands follow".
+      - name: Install the package and dev tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      # CHECK 1: linting. Ruff looks for likely bugs, unused imports and
+      # style problems. Think of it as a robot code reviewer that never
+      # gets tired or tactful.
+      - name: Lint (ruff)
+        run: ruff check .
+
+      # CHECK 2: formatting. This does not judge your code, only its layout.
+      # Automating it ends all arguments about spacing forever.
+      - name: Check formatting (ruff)
+        run: ruff format --check .
+
+      # CHECK 3: type checking. Mypy reads your type hints and finds mistakes
+      # like passing None where text is required.
+      - name: Type check (mypy)
+        run: mypy src/compass
+        # `continue-on-error: true` means a failure here is reported but does
+        # NOT fail the build. Mypy is advisory while you are learning; delete
+        # this line in month 2 once you are comfortable, and it becomes strict.
+        continue-on-error: true
+
+      # CHECK 4: the tests themselves.
+      # `--cov-fail-under=80` fails the build if less than 80% of your code is
+      # covered by tests. That number is a KPI in your scoping form, so this
+      # single line is what makes the KPI real rather than aspirational.
+      - name: Unit tests with coverage
+        run: pytest --cov=compass --cov-report=term-missing --cov-fail-under=80
+
+  # ---------------------------------------------------------------------------
+  # A SECOND, SEPARATE JOB for the infrastructure code.
+  # It checks Terraform is valid WITHOUT connecting to Azure or creating
+  # anything, so it is free, fast and completely safe to run on every PR.
+  # ---------------------------------------------------------------------------
+  terraform:
+    name: Terraform validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+        # `working-directory` runs the command inside that folder, so we do not
+        # have to `cd` first in every single step.
+        working-directory: infra/terraform
+
+      # `-backend=false` means "do not try to reach the remote state in Azure".
+      # We only want to check the syntax, and CI has no Azure credentials.
+      - name: Initialise without a backend
+        run: terraform init -backend=false
+        working-directory: infra/terraform
+
+      # Checks the configuration is internally coherent: no undefined
+      # variables, no misspelled resource types, no missing required fields.
+      - name: Validate configuration
+        run: terraform validate
+        working-directory: infra/terraform

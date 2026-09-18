@@ -1,0 +1,52 @@
+# =============================================================================
+# THE FIVE OPEN DATA SOURCES
+# =============================================================================
+# Every source the pipeline reads. Adding a source means adding a block here
+# plus one extractor module - the pipeline itself does not change.
+#
+# THE `engine` FIELD IS A DECISION, WRITTEN DOWN
+# ----------------------------------------------
+# pyspark = large national files (millions of rows). Spark splits the work
+#           across several machines, which is worth its start-up cost here.
+# pandas  = small lookup files (thousands of rows). Starting a Spark cluster
+#           to read a 1 MB file wastes time, money and energy.
+#
+#  K12 and K7: compute deliberately matched to the job.
+# =============================================================================
+
+sources:
+  # --- Condition registers: the core of the whole project ------------------
+  - name: qof_registers
+    kind: bulk_csv                             # a file you download
+    url: https://digital.nhs.uk/data-and-information/publications/statistical/quality-and-outcomes-framework-achievement-prevalence-and-exceptions-data
+    engine: pyspark                            # national file, every practice
+    refresh: annual                            # published once a year, so the
+                                               # data is inherently lagged. 
+
+  # --- Fingertips: public health indicators via an API ---------------------
+  - name: fingertips_indicators
+    kind: api                                  # a live web service, not a file
+    url: https://fingertips.phe.org.uk/api
+    engine: pandas                             # returns small JSON responses
+    refresh: annual
+
+  # --- Practice list sizes, split by age and sex ---------------------------
+  - name: registered_patients
+    kind: bulk_csv
+    url: https://digital.nhs.uk/data-and-information/publications/statistical/patients-registered-at-a-gp-practice
+    engine: pyspark
+    refresh: monthly                           # the freshest source you have
+
+  # --- Workforce: the capacity half of the imbalance index -----------------
+  - name: gp_workforce
+    kind: bulk_csv
+    url: https://digital.nhs.uk/data-and-information/publications/statistical/general-and-personal-medical-services
+    engine: pyspark
+    refresh: quarterly
+
+  # --- Deprivation: the Core20 lens ----------------------------------------
+  - name: imd_2019
+    kind: lookup                               # small reference table
+    url: https://www.gov.uk/government/statistics/english-indices-of-deprivation-2019
+    engine: pandas
+    refresh: static                            # 2019 edition; will not change

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Terraform - state contains secrets and must never be committed
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# Secrets and local environment
+.env
+*.pem
+.databrickscfg
+
+# Data: never commit datasets to git
+data/
+*.csv
+*.parquet
+
+# dbt
+dbt_compass/target/
+dbt_compass/dbt_packages/
+dbt_compass/logs/
+
+# Editors and OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.DS_Store
