@@ -163,19 +163,4 @@ resource "azurerm_databricks_workspace" "this" {
 # treating Terraform as magic.
 # =============================================================================
 
-resource "databricks_catalog" "compass" {
-  name    = var.project
-  comment = "CardioMetabolic Compass - managed by Terraform"
-  properties = {
-    purpose = "cardiometabolic-inequalities"
-  }
-}
 
-# # One schema per medallion layer, created from the same variable as the
-# # storage containers above - so the lake and the catalog can never drift apart.
-resource "databricks_schema" "layers" {
-  for_each     = toset(var.medallion_layers)
-  catalog_name = databricks_catalog.compass.name
-  name         = each.value
-  comment      = "${each.value} layer of the medallion architecture"
-}
