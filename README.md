@@ -36,3 +36,5 @@ This is the reusability claim the project is measured against.
 ## Full setup instructions
 
 See `SETUP.md`.
+
+I am adding a line to this read me file to test the commit and push functionality of git.
