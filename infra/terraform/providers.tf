@@ -36,12 +36,12 @@ terraform {
   # Create the storage account once by hand (SETUP.md step 6), then delete the
   # # from the lines below and run: terraform init -migrate-state
   # ---------------------------------------------------------------------------
-  # backend "azurerm" {
-  #   resource_group_name  = "rg-compass-tfstate"
-  #   storage_account_name = "stcompasstfstate<yourinitials>"
-  #   container_name       = "tfstate"
-  #   key                  = "compass.terraform.tfstate"
-  # }
+   backend "azurerm" {
+     resource_group_name  = "rg-compass-tfstate"
+     storage_account_name = "stcompasstfstateaa26"
+     container_name       = "tfstate"
+     key                  = "compass.terraform.tfstate"
+   }
 }
 
 # Configure the Azure provider. The empty `features {}` block is required by
