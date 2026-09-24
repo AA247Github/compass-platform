@@ -24,7 +24,7 @@ output "databricks_workspace_url" {
 output "key_vault_name" {
   description = "Key Vault used for pipeline secrets."
   value       = azurerm_key_vault.this.name
-  sensitive = true
+  sensitive   = true
 }
 
 # NOTE: if you ever output something sensitive, add `sensitive = true` so

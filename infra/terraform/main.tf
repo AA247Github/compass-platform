@@ -63,12 +63,12 @@ resource "azurerm_storage_account" "lake" {
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
 
-  account_tier             = "Standard" # Standard is fine; Premium is for very
-                                        # low-latency workloads and costs more.
-  account_replication_type = "LRS"      # LRS keeps 3 copies in one datacentre.
-                                        # Cheapest, and correct here because
-                                        # every file can be re-downloaded from
-                                        # the original public source.
+  account_tier = "Standard" # Standard is fine; Premium is for very
+  # low-latency workloads and costs more.
+  account_replication_type = "LRS" # LRS keeps 3 copies in one datacentre.
+  # Cheapest, and correct here because
+  # every file can be re-downloaded from
+  # the original public source.
 
   # THE MOST IMPORTANT LINE IN THIS BLOCK.
   # "hns" = hierarchical namespace. It gives the storage account real folders,
