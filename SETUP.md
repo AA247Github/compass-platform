@@ -336,3 +336,24 @@ month 7, and these files become the backbone of the design section of your repor
 
 When all of these are ticked, you have finished month 1 of the scoping form's
 project plan, and month 2 is only ingestion code on top of working foundations.
+
+
+Steps to Destroy in Azure Cloud
+
+Drop tables in Databricks Unity Catalog / SQL editor, then run the following commands in a terminal:
+
+cd ~
+git clone https://github.com/<your-username>/compass-platform.git
+cd compass-platform/infra/terraform
+
+cat > terraform.tfvars <<'EOF'
+subscription_id        = "7f6310af-aa28-4ea7-bba2-8da75c3ae87e"
+storage_account_suffix = "aa26"
+environment            = "dev"
+EOF
+
+terraform init
+terraform state list
+
+terraform destroy
+
