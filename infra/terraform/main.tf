@@ -63,12 +63,12 @@ resource "azurerm_storage_account" "lake" {
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
 
-  account_tier = "Standard" # Standard is fine; Premium is for very
-  # low-latency workloads and costs more.
-  account_replication_type = "LRS" # LRS keeps 3 copies in one datacentre.
-  # Cheapest, and correct here because
-  # every file can be re-downloaded from
-  # the original public source.
+  # Standard is fine; Premium is for very low-latency workloads and costs more.
+  # LRS keeps 3 copies in one datacentre: cheapest, and correct here because
+  # every file can be re-downloaded from the original public source.
+  # (Comments go ABOVE attributes: `terraform fmt` re-flows trailing ones.)
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
 
   # THE MOST IMPORTANT LINE IN THIS BLOCK.
   # "hns" = hierarchical namespace. It gives the storage account real folders,
@@ -143,24 +143,5 @@ resource "azurerm_databricks_workspace" "this" {
   tags = local.common_tags
 }
 
-
-# =============================================================================
-# UNITY CATALOG - LEAVE COMMENTED OUT ON YOUR FIRST RUN
-# =============================================================================
-# WHY: these resources talk to the Databricks workspace, which does not exist
-# until the block above has finished creating it. On a personal Azure account
-# you must also attach a "metastore" once, by hand, in the Databricks account
-# console at accounts.azuredatabricks.net.
-#
-# So the order is:
-#   1. terraform apply            (creates the workspace)
-#   2. attach a metastore by hand (one time, in the account console)
-#   3. delete the # from the lines below
-#   4. terraform apply again      (creates the catalog and schemas)
-#
-# Applying infrastructure in two passes like this is completely normal. Saying
-# so in your report shows you understand provider dependencies rather than
-# treating Terraform as magic.
-# =============================================================================
-
-
+# Unity Catalog objects (catalog, schemas, storage access) are in unity_catalog.tf.
+# The landing volume for raw files is in landing.tf.

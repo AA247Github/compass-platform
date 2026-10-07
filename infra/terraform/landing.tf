@@ -1,3 +1,6 @@
+# Unity Catalog access to the bronze container, and its raw/ folder exposed as
+# the volume /Volumes/compass/bronze/raw/ - where extractors land files untouched.
+# (Month 2 Step 2 - done.)
 resource "databricks_external_location" "bronze" {
   name            = "${local.suffix}-bronze"
   url             = "abfss://${azurerm_storage_container.layers["bronze"].name}@${azurerm_storage_account.lake.name}.dfs.core.windows.net/"
