@@ -142,7 +142,8 @@ az account show --query id -o tsv
 Copy that subscription ID; you need it in the next step.
 
 **Set a budget alert now, before creating anything.** In the Azure portal:
-Cost Management → Budgets → Add. Set £10, monthly, alert at 50% and 90%. Do not
+Cost Management → Budgets → Add. Set £50, monthly, alert at 50%, 80% and 100%
+(raised from £10 in Month 2, as ADR 002 recommends). Do not
 skip this. It costs nothing and prevents the single worst outcome of this project.
 
 Terraform's *state file* records what it created. It contains secrets, so it must
@@ -225,9 +226,9 @@ Azure account that step is done once through the Databricks account console at
 `accounts.azuredatabricks.net`, not through Terraform.
 
 So: open your workspace URL, confirm you can log in, attach a metastore via the
-account console, and only then uncomment the `databricks_catalog` and
-`databricks_schema` blocks at the bottom of `main.tf` and run `terraform apply`
-again.
+account console, and only then run `terraform apply` again so the resources in
+`unity_catalog.tf` (storage credential, external location, catalog, schemas)
+are created.
 
 Doing infrastructure in two passes like this is normal and worth saying out loud
 in your report: it shows you understand provider dependencies rather than
@@ -337,23 +338,33 @@ month 7, and these files become the backbone of the design section of your repor
 When all of these are ticked, you have finished month 1 of the scoping form's
 project plan, and month 2 is only ingestion code on top of working foundations.
 
+---
 
-Steps to Destroy in Azure Cloud
+## Cloud Shell session routine (every session)
 
-Drop tables in Databricks Unity Catalog / SQL editor, then run the following commands in a terminal:
+Your laptop's Azure CLI cannot write (MFA policy), so `plan`/`apply`/`destroy`
+run in Azure Cloud Shell (bash). Cloud Shell forgets files between sessions,
+so each session starts the same way. Nothing secret is typed or committed:
 
-cd ~
+```bash
+cd ~ && rm -rf compass-platform                      # start clean
 git clone https://github.com/<your-username>/compass-platform.git
 cd compass-platform/infra/terraform
 
-cat > terraform.tfvars <<'EOF'
-subscription_id        = "7f6310af-aa28-4ea7-bba2-8da75c3ae87e"
-storage_account_suffix = "aa26"
-environment            = "dev"
-EOF
+# Terraform reads TF_VAR_<name> environment variables as input variables,
+# so the subscription ID never has to be written into a file.
+export TF_VAR_subscription_id=$(az account show --query id -o tsv)
+export TF_VAR_storage_account_suffix=aa26
+export TF_VAR_environment=dev
 
 terraform init
-terraform state list
+terraform plan -out tfplan        # read it: + create, ~ change, - destroy
+terraform apply tfplan
+```
 
-terraform destroy
+**To tear down** (when away for 3+ days): same first block, then
+`terraform state list` (what exists) and `terraform destroy`. Schemas have
+`force_destroy = true`, so you no longer need to drop tables by hand first.
 
+> Never put shell commands (`cat > ... <<EOF`) inside `terraform.tfvars`: a
+> `.tfvars` file may contain only `name = value` lines, or `plan` fails to parse.

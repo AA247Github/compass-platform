@@ -8,33 +8,34 @@ Level 5 Data Engineer apprenticeship, AM1 project.
 
 ## What this repository contains
 
-| Path | What it is |
-|---|---|
-| `src/compass/` | The Python package: config loading, cleaning, extractors |
-| `tests/` | pytest suite; runs on every pull request |
-| `config/` | `icbs.yml` and `sources.yml` - the only files that change per ICB |
-| `infra/terraform/` | Infrastructure as code: ADLS, Key Vault, Databricks, Unity Catalog |
-| `dbt_compass/` | SQL transformation models (silver and gold layers) |
-| `docs/decisions/` | Architecture Decision Records |
-| `.github/workflows/` | CI: lint, format, type check, tests, terraform validate |
+| Path                  | What it is                                                  | Status        |
+| --------------------- | ----------------------------------------------------------- | ------------- |
+| `config/`             | `icbs.yml`, `sources.yml`: the only files an ICB change touches | Month 1-2  |
+| `src/compass/`        | Package: config, cleaning, extractors (analytics, quality later) | Month 1-2 |
+| `tests/`              | pytest suite; runs on every pull request                    | Month 1-2     |
+| `infra/terraform/`    | Azure, Key Vault, Databricks, Unity Catalog, landing volume | Month 1-2     |
+| `notebooks/`          | Databricks notebooks: ingestion (quality checks in Month 6) | Month 2       |
+| `databricks.yml`, `resources/` | The Databricks job, deployed as code (bundle)      | Month 2       |
+| `dbt_compass/`        | dbt: staging, intermediate, marts, serving views            | Month 3-5     |
+| `app/`                | Streamlit dashboard                                         | Month 5       |
+| `docs/decisions/`     | Architecture Decision Records (template: `000-template.md`) | Ongoing       |
+| `.github/`            | CI workflow and pull request template                       | Ongoing       |
 
-## Quick start
+## Quick start (no cloud, no cost)
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+python -m venv .venv                       # create it INSIDE this folder
+source .venv/bin/activate                  # Windows: .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-pytest                              # 36 tests should pass
+pytest                                     # all pass; Month 2 specs show as skipped
 ```
 
-## Adding a fourth ICB
+## Adding an ICB
 
-Edit `config/icbs.yml`, add a block with the ODS code, name and peer codes, set
-`enabled: true`, and rerun the pipeline. No Python or SQL changes are required.
-This is the reusability claim the project is measured against.
+Edit `config/icbs.yml` (add a block or set `enabled: true`). From Month 3,
+also run `python -m compass.seeds` and commit both files. No Python or SQL
+changes: that is the reusability claim the project is measured against.
 
 ## Full setup instructions
 
 See `SETUP.md`.
-
-I am adding a line to this read me file to test the commit and push functionality of git.
