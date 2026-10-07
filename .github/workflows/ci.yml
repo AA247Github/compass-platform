@@ -73,7 +73,7 @@ jobs:
         # `continue-on-error: true` means a failure here is reported but does
         # NOT fail the build. Mypy is advisory while you are learning; delete
         # this line in month 2 once you are comfortable, and it becomes strict.
-        continue-on-error: true
+        #continue-on-error: true
 
       # CHECK 4: the tests themselves.
       # `--cov-fail-under=80` fails the build if less than 80% of your code is
