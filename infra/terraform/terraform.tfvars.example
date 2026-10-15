@@ -1,6 +1,11 @@
 # Copy this file to terraform.tfvars and fill in your own values.
 # terraform.tfvars is gitignored because it identifies your subscription.
+#
+# Cloud Shell tip: you can skip typing the subscription ID. Terraform reads any
+# environment variable named TF_VAR_<variable name>, so this works instead:
+#   export TF_VAR_subscription_id=$(az account show --query id -o tsv)
+# A .tfvars file holds ONLY `name = value` lines: never shell commands.
 
 subscription_id        = "00000000-0000-0000-0000-000000000000"
-storage_account_suffix = "aoa"   # your initials; keeps the name globally unique
+storage_account_suffix = "aa26" # your initials + year; keeps names globally unique
 environment            = "dev"

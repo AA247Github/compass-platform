@@ -104,4 +104,9 @@ resource "databricks_schema" "layers" {
   catalog_name = databricks_catalog.compass.name
   name         = each.value
   comment      = "${each.value} layer of the medallion architecture"
+
+  # Lets `terraform destroy` remove a schema that still holds tables. From
+  # Month 2 the schemas hold tables, so without this, destroy fails.
+  # Takes effect after one `terraform apply` (shows as "1 to change" x3).
+  force_destroy = true
 }

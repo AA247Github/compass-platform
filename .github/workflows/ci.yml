@@ -68,12 +68,9 @@ jobs:
 
       # CHECK 3: type checking. Mypy reads your type hints and finds mistakes
       # like passing None where text is required.
+      # Strict since Month 1 Step 13c: a type error now fails the build.
       - name: Type check (mypy)
         run: mypy src/compass
-        # `continue-on-error: true` means a failure here is reported but does
-        # NOT fail the build. Mypy is advisory while you are learning; delete
-        # this line in month 2 once you are comfortable, and it becomes strict.
-        #continue-on-error: true
 
       # CHECK 4: the tests themselves.
       # `--cov-fail-under=80` fails the build if less than 80% of your code is
@@ -98,7 +95,9 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-           terraform_version: "1.16.4"
+          # Pin to the version `terraform version` prints on your laptop and in
+          # Cloud Shell, so all three format files identically.
+          terraform_version: "1.16.4"
 
       - name: Check formatting
         run: terraform fmt -check -recursive

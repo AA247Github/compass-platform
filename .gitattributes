@@ -1,0 +1,25 @@
+# Line endings: store every text file in git with LF ("\n") endings.
+#
+# WHY: Windows editors save with CRLF ("\r\n"). Without this file, opening and
+# saving ci.yml on Windows made git report every single line as changed
+# (that is what happened in October 2026). With it, git converts on commit,
+# so diffs show only the lines you really changed.
+#
+# SYNTAX: <pattern> <attribute>=<value>
+#   text=auto  -> git decides which files are text
+#   eol=lf     -> text files are stored with LF in the repository
+* text=auto eol=lf
+
+# Windows-only scripts genuinely need CRLF.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# Binary files: never touch their bytes.
+*.png binary
+*.jpg binary
+*.pdf binary
+*.zip binary
+*.xlsx binary
+*.docx binary
+*.pbix binary
+*.duckdb binary

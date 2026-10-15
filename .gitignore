@@ -1,3 +1,8 @@
+# .gitignore = files git should pretend do not exist.
+# SYNTAX: one pattern per line. `*` = any characters, a trailing `/` = folder,
+# a leading `!` = "but DO track this", which un-ignores an earlier match.
+# Check a path with:  git check-ignore -v <path>   (prints the rule, or nothing)
+
 # Python
 __pycache__/
 *.py[cod]
@@ -10,33 +15,45 @@ venv/
 .coverage
 htmlcov/
 
-# Terraform - state contains secrets and must never be committed
+# Terraform - state and plan files can contain secrets: never commit them
 .terraform/
 *.tfstate
 *.tfstate.*
+tfplan
+*.tfplan
 *.tfvars
 !*.tfvars.example
-
+# NOTE: .terraform.lock.hcl IS committed - it pins provider versions so
+# laptop, Cloud Shell and CI use identical providers (HashiCorp guidance).
 
 # Secrets and local environment
 .env
 *.pem
 .databrickscfg
+
+# Databricks bundle deploy state (Month 2 Step 9)
 .databricks/
 
 # Data: never commit datasets to git
 data/
+local/
+*.duckdb
+*.duckdb.wal
 *.csv
 *.parquet
-!_compass/seeds/*.csdbtv
+# ...except dbt seeds: small reference tables that MUST be in git (Month 3).
+# This line must come AFTER *.csv, because the last matching rule wins.
+!dbt_compass/seeds/*.csv
 
 # dbt
 dbt_compass/target/
 dbt_compass/dbt_packages/
 dbt_compass/logs/
+dbt_compass/.user.yml
 
 # Editors and OS
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
 .DS_Store
+Thumbs.db

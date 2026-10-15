@@ -14,8 +14,19 @@ dependencies = [
     "pandas>=2.0",
 ]
 
+# Optional groups ("extras"). Install several at once: pip install -e ".[dev,dbt]"
+# The quotes matter in PowerShell, which otherwise reads [ ] as a pattern.
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "mypy>=1.10"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0", "ruff>=0.6", "mypy>=1.10", "types-requests", "types-PyYAML"]
+# Month 3: dbt on a local DuckDB file. Free, offline, also used by CI.
+dbt = ["dbt-duckdb>=1.9"]
+# Month 3 onwards: real runs against Databricks from your laptop.
+databricks = ["dbt-databricks>=1.9", "databricks-sql-connector>=3.0"]
+# Month 5: the dashboard. Altair ships with Streamlit, so no extra chart library.
+app = ["streamlit>=1.46", "duckdb>=1.0"]
+# Optional laptop check that SQL runs on Spark, and the spark_io tests.
+# Needs Java 17+. Not installed in CI.
+spark = ["pyspark>=3.5"]
 
 # src layout: the package lives in src/compass, which stops tests from
 # accidentally importing local files instead of the installed package.
@@ -26,6 +37,15 @@ where = ["src"]
 testpaths = ["tests"]
 addopts = "-v --cov=compass --cov-report=term-missing"
 
+[tool.coverage.run]
+# spark_io needs Spark, which CI does not install (see tests/test_spark_io.py).
+omit = ["*/compass/spark_io.py"]
+
+[tool.coverage.report]
+# Scaffold lines you have not written yet should not drag the 80% gate down.
+# Once you replace `raise NotImplementedError(...)` with real code, it counts.
+exclude_also = ["raise NotImplementedError"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
@@ -34,6 +54,17 @@ target-version = "py310"
 # E/F = pycodestyle+pyflakes errors, I = import sorting, UP = modern syntax,
 # B = likely bugs. A sensible starting set that is strict but not painful.
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+# app/data.py and app/ui.py (Month 5) are our own modules, imported by pages.
+known-first-party = ["compass", "data", "ui"]
+
+[tool.ruff.lint.per-file-ignores]
+# Databricks notebooks: `spark`, `dbutils` and `display` are provided by the
+# runtime (F821), and imports come after the sys.path line on purpose (E402, I001).
+"notebooks/*" = ["F821", "E402", "I001"]
+# Streamlit pages add the app folder to sys.path before importing from it.
+"app/*" = ["E402"]
 
 [tool.mypy]
 python_version = "3.10"

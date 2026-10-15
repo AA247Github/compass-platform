@@ -1,0 +1,32 @@
+# The Databricks job, as code.                              [SCAFFOLD - Month 2 Step 9a]
+#
+# Month 2: ingest tasks only. Month 3 adds `dbt_build` (depends on every ingest
+# task) and an `environments` block. Month 6 adds `quality` (depends on dbt_build).
+#
+# TODO - write this structure:
+#
+# resources:
+#   jobs:
+#     compass_pipeline:                     # the key the CLI uses: bundle run compass_pipeline
+#       name: compass-pipeline
+#       schedule:
+#         quartz_cron_expression: "0 0 6 ? * MON"   # sec min hour day-of-month month day-of-week
+#         timezone_id: Europe/London
+#       email_notifications:
+#         on_failure:
+#           - ${var.alert_email}
+#       max_concurrent_runs: 1              # never two loads at once
+#       # No cluster block = serverless compute: starts in seconds, stops itself.
+#       tasks:
+#         - task_key: fingertips
+#           notebook_task:
+#             notebook_path: ../notebooks/ingest_fingertips.py
+#         - task_key: qof
+#           notebook_task:
+#             notebook_path: ../notebooks/ingest_bulk_csv.py
+#             base_parameters: { source: qof_prevalence }
+#         # ...one task per bulk source: registered_patients, patients_by_lsoa,
+#         #    gp_workforce. Tasks with no depends_on run in PARALLEL.
+#
+# Check: `databricks bundle validate`, then `databricks bundle deploy` and
+# `databricks bundle run compass_pipeline`; Jobs & Pipelines shows a green run.
