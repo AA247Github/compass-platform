@@ -1,52 +1,121 @@
 # =============================================================================
-# THE FIVE OPEN DATA SOURCES
+# THE OPEN DATA SOURCES
 # =============================================================================
 # Every source the pipeline reads. Adding a source means adding a block here
 # plus one extractor module - the pipeline itself does not change.
 #
-# THE `engine` FIELD IS A DECISION, WRITTEN DOWN
-# ----------------------------------------------
-# pyspark = large national files (millions of rows). Spark splits the work
-#           across several machines, which is worth its start-up cost here.
-# pandas  = small lookup files (thousands of rows). Starting a Spark cluster
-#           to read a 1 MB file wastes time, money and energy.
+# THE `engine` FIELD IS A DECISION, WRITTEN DOWN, FROM MEASURED SIZES
+# -------------------------------------------------------------------
+# pyspark = files of roughly a million rows or more.
+# pandas  = everything smaller. QOF looks "national" but is ~135,000 rows,
+#           which pandas reads in about a second.
+# Both still land as Delta tables: on Databricks, pandas data is handed to
+# spark.createDataFrame() for the write. K12 and K7: compute matched to size.
 #
-#  K12 and K7: compute deliberately matched to the job.
+# download_urls: the exact files for the current release. Moving to next
+# year's release = changing these lines, nothing else.
 # =============================================================================
 
 sources:
   # --- Condition registers: the core of the whole project ------------------
-  - name: qof_registers
-    kind: bulk_csv                             # a file you download
-    url: https://digital.nhs.uk/data-and-information/publications/statistical/quality-and-outcomes-framework-achievement-prevalence-and-exceptions-data
-    engine: pyspark                            # national file, every practice
-    refresh: annual                            # published once a year, so the
-                                               # data is inherently lagged. 
+  - name: qof_prevalence
+    kind: bulk_csv
+    url: https://digital.nhs.uk/data-and-information/publications/statistical/quality-and-outcomes-framework-achievement-prevalence-and-exceptions-data/2025-26
+    engine: pandas # PREVALENCE_2526.csv: ~135k rows
+    refresh: annual # 2025-26 published 27 Aug 2026
+    download_urls:
+      - https://files.digital.nhs.uk/05/37C52B/QOF_2526_v2.zip
+    options:
+      tables: # file in the zip -> bronze table
+        PREVALENCE_2526.csv: qof_prevalence
+        MAPPING_NHS_GEOGRAPHIES_2526.csv: qof_practice_mapping
+      group_codes: [HYP, DM]
 
-  # --- Fingertips: public health indicators via an API ---------------------
+  # --- Fingertips: published indicators via an API (validation source) -----
   - name: fingertips_indicators
-    kind: api                                  # a live web service, not a file
+    kind: api
     url: https://fingertips.phe.org.uk/api
-    engine: pandas                             # returns small JSON responses
+    engine: pandas
     refresh: annual
+    options:
+      indicator_ids: [219, 241] # 219 hypertension, 241 diabetes (QOF)
+      child_area_type_id: 7 # GP practice
+      parent_area_type_id: 221 # ICB
 
-  # --- Practice list sizes, split by age and sex ---------------------------
+  # --- Registered patients: list sizes by age band and sex ------------------
   - name: registered_patients
     kind: bulk_csv
-    url: https://digital.nhs.uk/data-and-information/publications/statistical/patients-registered-at-a-gp-practice
-    engine: pyspark
-    refresh: monthly                           # the freshest source you have
+    url: https://digital.nhs.uk/data-and-information/publications/statistical/patients-registered-at-a-gp-practice/september-2026
+    engine: pandas # 5-year bands: small
+    refresh: monthly
+    download_urls:
+      - https://files.digital.nhs.uk/86/375B51/gp-reg-pat-prac-quin-age.zip
+      - https://files.digital.nhs.uk/1C/CE61A6/gp-reg-pat-prac-map.zip
+    options:
+      tables: # check names on first download
+        gp-reg-pat-prac-quin-age.csv: gp_list_quinary_age
+        gp-reg-pat-prac-map.csv: gp_practice_mapping
+
+  # --- Where each practice's patients live (practice <-> LSOA, many-to-many) -
+  - name: patients_by_lsoa
+    kind: bulk_csv
+    url: https://digital.nhs.uk/data-and-information/publications/statistical/patients-registered-at-a-gp-practice/july-2026
+    engine: pyspark # millions of practice x LSOA rows
+    refresh: quarterly # Jan, Apr, Jul, Oct releases
+    download_urls:
+      - https://files.digital.nhs.uk/93/C90730/gp-reg-pat-prac-lsoa-male-female-July-26.zip
+    options:
+      tables:
+        gp-reg-pat-prac-lsoa-all.csv: gp_patients_by_lsoa
 
   # --- Workforce: the capacity half of the imbalance index -----------------
   - name: gp_workforce
     kind: bulk_csv
-    url: https://digital.nhs.uk/data-and-information/publications/statistical/general-and-personal-medical-services
-    engine: pyspark
-    refresh: quarterly
+    url: https://digital.nhs.uk/data-and-information/publications/statistical/general-and-personal-medical-services/31-august-2026
+    engine: pandas
+    refresh: monthly
+    download_urls:
+      - https://files.digital.nhs.uk/49/2ABF5A/GPWPracticeCSV.082026.zip
+    options:
+      tables: {} # fill in after the first download:
+        # "<practice-level detailed file>.csv": gp_workforce
 
   # --- Deprivation: the Core20 lens ----------------------------------------
-  - name: imd_2019
-    kind: lookup                               # small reference table
-    url: https://www.gov.uk/government/statistics/english-indices-of-deprivation-2019
-    engine: pandas
-    refresh: static                            # 2019 edition; will not change
+  - name: iod_2025
+    kind: lookup
+    url: https://www.gov.uk/government/statistics/english-indices-of-deprivation-2025
+    engine: pandas # 33,755 LSOAs
+    refresh: static # 2021 LSOA codes, matching ONS
+
+    # Landed by Azure Data Factory (infra/terraform/adf.tf), so no URL here:
+    # the notebook loads whatever CSV is in today's landing folder.
+    # Code-only alternative: paste this link instead of [] -
+    # https://assets.publishing.service.gov.uk/media/691ded56d140bbbaa59a2a7d/File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv
+    download_urls: []
+
+  # --- Ethnicity: Census 2021, by LSOA (adaptation A4) ----------------------
+  - name: census_ethnicity
+    kind: lookup
+    url: https://www.nomisweb.co.uk/sources/census_2021_bulk
+    engine: pandas                 # about 35,700 LSOAs (England + Wales): small
+    refresh: static                # a census happens every ten years
+    download_urls:
+      - <TS021 "Ethnic group" zip link, copied from the Nomis bulk page>
+    options:
+      tables:
+        <LSOA-level csv name inside the zip>: census_ts021_lsoa   # check on download
+
+  # --- Postcodes to LSOA and map coordinates (adaptation A8) ---------------
+  # Repurposes ons_postcode_lsoa: the National Statistics Postcode Lookup
+  # (NSPL) gives every postcode its 2021 LSOA AND its latitude/longitude.
+  - name: ons_postcode_lsoa
+    kind: lookup
+    url: https://geoportal.statistics.gov.uk/   # search "NSPL", latest release
+    engine: pyspark                # about 2.7 million rows: measure it
+    refresh: quarterly             # NSPL is reissued every few months
+    download_urls:
+      - <NSPL zip link>
+    options:
+      encoding: ISO-8859-1         # check: older ONS files are Latin-1
+      tables:
+        <main UK csv inside the zip, e.g. NSPL_..._UK.csv>: ons_postcode_lsoa

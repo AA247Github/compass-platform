@@ -34,7 +34,7 @@ def test_real_config_files_load_and_validate() -> None:
     """
     settings = load_settings()
     assert len(settings.icbs) == 3  # len() = "how many items"
-    assert len(settings.sources) == 5
+    assert len(settings.sources) == 8
 
 
 def test_only_enabled_icbs_are_processed() -> None:
@@ -74,7 +74,7 @@ def test_icb_code_is_normalised_to_uppercase() -> None:
     Note we build an IcbConfig directly here rather than reading a file. Small,
     focused tests like this pinpoint exactly which piece is broken.
     """
-    icb = IcbConfig(code=" qop ", name="Test ICB")
+    icb = IcbConfig(code=" qop ", name="Test ICB", ons_code="E54000057")
     assert icb.code == "QOP"
 
 
@@ -102,3 +102,61 @@ def test_every_source_declares_a_right_sized_engine() -> None:
     """
     settings = load_settings()
     assert all(s.engine in {"pyspark", "pandas"} for s in settings.sources)
+
+
+# 3. New test: an ODS code in the ONS field must be rejected.
+def test_icb_ons_code_must_look_like_an_ons_icb_code() -> None:
+    """ODS codes (QHL) and ONS codes (E54000055) are easy to mix up."""
+    with pytest.raises(ValidationError, match="ons_code"):  # passes only if the error happens
+        IcbConfig(code="QHL", name="Test ICB", ons_code="QHL")
+
+
+def test_every_enabled_icb_has_an_ons_code() -> None:
+    """Evidence for K12/K7: every enabled ICB has an ONS code.
+
+    This is a business rule, not a technical one. It is enforced here because
+    it is important to the pipeline's correctness, and it is easy to forget.
+    """
+    settings = load_settings()
+    assert all(icb.ons_code for icb in settings.enabled_icbs)
+
+
+def test_source_lookup_by_name() -> None:
+    """The config object should let you find a source by name.
+
+    This is a convenience for the pipeline code, which often needs to find a
+    source by name. It is not strictly necessary, but it is worth testing that
+    it works.
+    """
+    settings = load_settings()
+    assert settings.source("fingertips_indicators").options["indicator_ids"] == [219, 241]
+    with pytest.raises(KeyError):
+        settings.source("does_not_exist")
+
+
+def test_invalid_refresh_is_rejected() -> None:
+    """The refresh field must be one of the allowed values.
+
+    This is a business rule, not a technical one. It is enforced here because
+    it is important to the pipeline's correctness, and it is easy to forget.
+    """
+    with pytest.raises(ValidationError):
+        SourceConfig(
+            name="x", kind="bulk_csv", url="http://e.com", engine="pandas", refresh="anual"
+        )
+
+
+def test_bulk_sources_have_download_links() -> None:
+    """All bulk sources must have a download link.
+
+    This is a business rule, not a technical one. It is enforced here because
+    it is important to the pipeline's correctness, and it is easy to forget.
+    """
+    settings = load_settings()
+    assert all(s.download_urls for s in settings.sources if s.kind == "bulk_csv")
+
+
+def test_ons_codes_are_unique() -> None:
+    """Copy-pasting an ICB block must not leave two ICBs with one ONS code."""
+    codes = [icb.ons_code for icb in load_settings().icbs]
+    assert len(codes) == len(set(codes))  # a set drops duplicates
