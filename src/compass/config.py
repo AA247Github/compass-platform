@@ -24,6 +24,7 @@ from __future__ import annotations
 # `Path` is Python's modern way of handling file locations. It works on Windows,
 # Mac and Linux without you worrying about backslashes versus forward slashes.
 from pathlib import Path
+from typing import Any  # Any = "any type"; used for the free-form options dict
 
 # PyYAML reads .yml files and turns them into ordinary Python dicts and lists.
 import yaml
@@ -69,7 +70,12 @@ class IcbConfig(BaseModel):
     #
     # `Field(...)` with three dots means REQUIRED: the config must supply it.
     # The description is documentation that pydantic keeps with the field.
-    code: str = Field(..., description="ODS code, e.g. QHL")
+    code: str = Field(..., description="ODS code, e.g. QHL.")
+    ons_code: str = Field(
+        ...,
+        pattern=r"^E54\d{6}$",
+        description="ONS code, e.g. E54000055. Used by Fingertips and ONS files.",
+    )
 
     # No Field() at all, just a type: also required, but with nothing extra.
     name: str
@@ -110,6 +116,8 @@ class IcbConfig(BaseModel):
 # ---------------------------------------------------------------------------
 # SHAPE 2: one upstream data source
 # ---------------------------------------------------------------------------
+
+
 class SourceConfig(BaseModel):
     """One upstream data source, such as QOF or the workforce file."""
 
@@ -126,6 +134,17 @@ class SourceConfig(BaseModel):
         description="pyspark for large national files, pandas for small lookups.",
     )
     refresh: str = Field("annual", description="annual, monthly or static")
+
+    download_urls: list[str] = Field(default_factory=list)
+    options: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("refresh")  # run this function whenever `refresh` is loaded
+    @classmethod  # pydantic validators must be class methods
+    def known_refresh(cls, v: str) -> str:
+        allowed = {"annual", "quarterly", "monthly", "static"}  # {...} = a set
+        if v not in allowed:
+            raise ValueError(f"refresh must be one of {sorted(allowed)}, got {v!r}")
+        return v
 
     @field_validator("kind")
     @classmethod
@@ -186,6 +205,12 @@ class Settings(BaseModel):
         # cannot then accidentally carry on with nothing and fail later
         # somewhere far away from the actual mistake.
         raise KeyError(f"No ICB configured with code {code!r}")
+
+    def source(self, name: str) -> SourceConfig:
+        for src in self.sources:
+            if src.name == name:
+                return src
+        raise KeyError(f"No source configured with name {name!r}")  # !r = show quotes
 
 
 # ---------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-"""One HTTP helper shared by every extractor.            [SCAFFOLD - Month 2 Step 5a]
+"""One HTTP helper shared by every extractor.
 
 WHAT YOU ARE BUILDING
     get_with_retry(): fetch a URL, and if the failure is temporary (a timeout,
@@ -47,23 +47,30 @@ def get_with_retry(
     stream: bool = False,
     sleep: Callable[[float], None] = time.sleep,
 ) -> requests.Response:
-    """GET a URL, retrying timeouts, dropped connections, 429 and 5xx.
+    """GET a URL, retrying timeouts, dropped connections, 429 and 5xx."""
+    session = session or requests.Session()
+    for attempt in range(1, attempts + 1):
+        try:
+            response = session.get(url, params=params, timeout=timeout, stream=stream)
 
-    `session` and `sleep` are parameters so tests can pass fakes: no network
-    and no real waiting. This is called dependency injection.
+            if response.status_code not in RETRY_STATUS:
+                response.raise_for_status()  # raises HTTPError if status is 4xx or 5xx
+                log.info("GET %s -> %s", url, response.status_code)
+                return response
 
-    TODO (write this yourself, in this order):
-      1. Use the session you were given, or make a new requests.Session().
-      2. Loop `for attempt in range(1, attempts + 1):`
-      3. Inside a try: call session.get(url, params=..., timeout=..., stream=...).
-         - status NOT in RETRY_STATUS -> response.raise_for_status() (fails fast
-           on 4xx), log at INFO, and return the response.
-         - status IN RETRY_STATUS -> remember the reason, e.g. "HTTP 503".
-      4. except (requests.Timeout, requests.ConnectionError) -> remember the
-         exception's class name as the reason.
-      5. On the last attempt raise RuntimeError(f"GET {url} failed after
-         {attempts} attempts ({reason})").
-      6. Otherwise wait = backoff * 2 ** (attempt - 1); log a WARNING that
-         contains "retry {attempt}/{attempts - 1}"; then sleep(wait).
-    """
-    raise NotImplementedError("Month 2 Step 5a: write get_with_retry (see the guide)")
+            reason = f"HTTP {response.status_code}"
+
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            reason = type(exc).__name__
+
+        # Back at loop level (lined up with `try`): runs after try OR except.
+        if attempt == attempts:
+            raise RuntimeError(f"GET {url} failed after {attempts} attempts ({reason})")
+
+        wait = backoff * 2 ** (attempt - 1)
+        log.warning(
+            "GET %s failed (%s), retry %d/%d in %.0fs", url, reason, attempt, attempts - 1, wait
+        )
+        sleep(wait)  # the injected `sleep`, so tests don't really wait
+
+    raise AssertionError("unreachable")  # for mypy: the loop always returns or raises first

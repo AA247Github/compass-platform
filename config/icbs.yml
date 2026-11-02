@@ -18,27 +18,39 @@
 
 icbs:
   # --- ICB 1 --------------------------------------------------------------
-  - code: QHL                                  # ODS code. Uppercase is forced
-                                               # by a validator in config.py.
+  - code:
+      QHL # ODS code. Uppercase is forced
+      # by a validator in config.py.
     name: NHS Birmingham and Solihull ICB
-    enabled: true                              # MONTH 4: the first full build.
-                                               # Highest diabetes burden and
-                                               # most diverse population, so it
-                                               # is the strongest single case.
-    peer_codes: [QOP, QKK]                     # Who this ICB is benchmarked
-                                               # against. Square brackets are
-                                               # a short way of writing a list.
+    ons_code: E54000055
+    enabled:
+      true # MONTH 4: the first full build.
+      # Highest diabetes burden and
+      # most diverse population, so it
+      # is the strongest single case.
+    peer_codes:
+      [QOP, QKK]
+      # Who this ICB is benchmarked
+      # against. Square brackets are
+      # a short way of writing a list.
 
   # --- ICB 2 --------------------------------------------------------------
   - code: QOP
     name: NHS Greater Manchester ICB
-    enabled: false                             # MONTH 5: change this one word
-                                               # to true. That is the entire
-                                               # deployment. No code changes.
-    peer_codes: [QHL, QKK]
+    ons_code: E54000057
+    enabled:
+      false # MONTH 5: change this one word
+      # to true. That is the entire
+      # deployment. No code changes.
+    peer_codes:
+      [QHL, QKK]
+      # ONS code: used by Fingertips and ONS files
 
   # --- ICB 3 --------------------------------------------------------------
   - code: QKK
     name: NHS South East London ICB
-    enabled: false                             # MONTH 5: same again.
-    peer_codes: [QHL, QOP]
+    ons_code: E54000030
+    enabled: false # MONTH 5: same again.
+    peer_codes:
+      [QHL, QOP]
+      # ONS code: used by Fingertips and ONS files
