@@ -21,8 +21,6 @@ import requests
 
 from compass.extractors.http_retry import get_with_retry
 
-pytestmark = pytest.mark.skip(reason="Month 2 Step 5a: delete this line when you start")
-
 
 class FakeResponse:
     def __init__(self, status: int, text: str = "ok") -> None:
